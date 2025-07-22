@@ -53,3 +53,7 @@ uvicorn api.app:app --reload
 
 The API will be available at http://localhost:8000
 
+### Deployed
+```bash
+http://34.93.46.156:8501/
+```
