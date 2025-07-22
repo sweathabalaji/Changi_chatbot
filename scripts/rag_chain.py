@@ -6,11 +6,11 @@ from langchain.prompts import PromptTemplate
 from dotenv import load_dotenv
 import os
 
-# Load environment variables
+# Load environment variables from .env file
 load_dotenv()
 api_key = os.getenv("GOOGLE_API_KEY")
 
-# Define a custom prompt template to guide the model's responses
+# Custom prompt guiding Gemini responses to be grounded in Changi/Jewel data
 CHANGI_TEMPLATE = """
 You are a helpful assistant for Changi Airport and Jewel in Singapore. 
 Use the following pieces of context to answer the question at the end.
@@ -29,42 +29,44 @@ Context: {context}
 
 Question: {question}
 
-Helpful Answer:"""
+Helpful Answer:
+"""
 
 def load_qa_chain():
-    # Load HuggingFace sentence transformer model
+    # 1. Load sentence transformer model (for embedding text)
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
-    # Load Chroma vector DB from disk
-    db = Chroma(persist_directory="chroma_store", embedding_function=embeddings)
-    
-    # Configure retriever with search parameters
-    retriever = db.as_retriever(
-        search_type="similarity",
-        search_kwargs={"k": 5}  # Retrieve more documents for better context
+    # 2. Load persisted Chroma vector DB
+    db = Chroma(
+        persist_directory="chroma_store", 
+        embedding_function=embeddings
     )
 
-    # Create the custom prompt
+    # 3. Configure retriever
+    retriever = db.as_retriever(
+        search_type="similarity", 
+        search_kwargs={"k": 5}
+    )
+
+    # 4. Define prompt template
     prompt = PromptTemplate(
-        template=CHANGI_TEMPLATE,
+        template=CHANGI_TEMPLATE, 
         input_variables=["context", "question"]
     )
 
-    # Initialize Gemini LLM with correct model name
+    # 5. Initialize Gemini Flash (faster, cheaper)
     llm = ChatGoogleGenerativeAI(
         model="gemini-1.5-flash",
         google_api_key=api_key,
         temperature=0.2,
-        max_output_tokens=1024  # Ensure we get detailed responses
+        max_output_tokens=1024
     )
 
-    # Create Retrieval QA chain with custom prompt
-    chain = RetrievalQA.from_chain_type(
+    # 6. Return RAG pipeline
+    return RetrievalQA.from_chain_type(
         llm=llm,
-        chain_type="stuff",  # Stuff all retrieved documents into the prompt
+        chain_type="stuff",
         retriever=retriever,
         return_source_documents=False,
         chain_type_kwargs={"prompt": prompt}
     )
-
-    return chain
