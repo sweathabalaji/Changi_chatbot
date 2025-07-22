@@ -1,7 +1,9 @@
 streamlit
 langchain
+langchain-community
+langchain-google-genai
 sentence-transformers
 chromadb
+python-dotenv
+tqdm
 google-generativeai
-beautifulsoup4
-requests
